@@ -259,6 +259,21 @@ namespace JiraExport
             var linkType = jira.LinkTypes.FirstOrDefault(lt => linkTypeString.EndsWith(lt.Outward + " " + targetItemKey));
             if (linkType == null)
             {
+                // try inward link
+                var linkTypeInward = jira.LinkTypes.FirstOrDefault(lt => linkTypeString.EndsWith(lt.Inward + " " + targetItemKey));
+                if (linkTypeInward != null && sourceItemKey.CompareTo(targetItemKey) >= 0)
+                {
+                    return new RevisionAction<JiraLink>()
+                    {
+                        ChangeType = changeType,
+                        Value = new JiraLink()
+                        {
+                            SourceItem = sourceItemKey,
+                            TargetItem = targetItemKey,
+                            LinkType = linkTypeInward.Name,
+                        }
+                    };
+                }
                 Logger.Log(LogLevel.Debug, $"Link with description '{linkTypeString}' is either not found or this issue ({sourceItemKey}) is not inward issue.");
                 return null;
             }
@@ -291,7 +306,7 @@ namespace JiraExport
             {
                 var targetIssueKey = issueLink.ExValue<string>("$.outwardIssue.key");
                 if (string.IsNullOrWhiteSpace(targetIssueKey))
-                    continue;
+                        continue;
 
                 var type = issueLink.ExValue<string>("$.type.name");
 
